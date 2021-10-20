@@ -11,4 +11,8 @@ public class OrderException extends RuntimeException {
 		super(string);
 	}
 
+	public OrderException(Exception e) {
+		super(e);
+	}
+
 }

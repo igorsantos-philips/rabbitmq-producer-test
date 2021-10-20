@@ -3,7 +3,7 @@ server:
 philips:
   rabbitmq:
     hosts: localhost:5672
-    virtual-host: chinainbox
+    virtual-host: chinainbox,kfc,mcdonalds,lecado
     username: chinainbox
     password: chinainbox
 debug: true

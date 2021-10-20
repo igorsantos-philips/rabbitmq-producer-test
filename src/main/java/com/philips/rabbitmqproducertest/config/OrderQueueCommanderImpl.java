@@ -25,7 +25,7 @@ public class OrderQueueCommanderImpl implements MessagesQueueingCommand<Order>{
 	@Override
 	public void sendMessage(Order message) throws IOException, TimeoutException {
 		RabbitMQMessageBasicProperties basicProperties= new RabbitMQMessageBasicProperties();
-		try(Channel channel = connectins.getConnection().createChannel()){
+		try(Channel channel = connectins.getConnection(message.getDemandedRestaurantName()).createChannel()){
 			channel.basicPublish(ORDER_EXCHANGE_NAME, ORDER_ROUTING_KEY, false, basicProperties, om.writeValueAsBytes(message));
 		}
 	}

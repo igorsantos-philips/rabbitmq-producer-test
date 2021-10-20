@@ -10,6 +10,7 @@ import java.util.concurrent.TimeoutException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import com.philips.rabbitmqproducertest.services.exceptions.OrderException;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
 
@@ -18,37 +19,62 @@ public class PoolConnections {
 	@Autowired
 	private ConnectioFactoryNodes connectioFactoryNodes;
 	
-	private Map<String, Connection> connections = new TreeMap<String, Connection>();
+	private Map<String, VirtualHostConnections> virtualHostConnectionsMap = new TreeMap<>();
 	
-	public Connection getConnection( ) throws IOException, TimeoutException {
-		for(Entry<String, Connection> entry: this.connections.entrySet()) {
+	public Connection getConnection(String vHost) throws IOException, TimeoutException {
+		if(!virtualHostConnectionsMap.containsKey(vHost)) {
+			createConnections(vHost);
+		}
+		Set<Entry<String, Connection>> setConnections = virtualHostConnectionsMap.get(vHost).getVirtualHostConnections().entrySet();
+		for(Entry<String, Connection> entry: setConnections) {
 			Connection connection = entry.getValue();
 			if (connection.isOpen())
 				return connection;
 		}
-		createConnections();
-		return getConnection( );
+		createConnections(vHost);
+		return getConnection(vHost);
 	}
-	private void createConnections() throws IOException, TimeoutException {
-		Set<Entry<String, ConnectionFactory>> entrySet =this.connectioFactoryNodes.getNodeConnectionsFactories(); 
-		for (Entry<String, ConnectionFactory> entry :entrySet ) {
+	private void createConnections(String vHost) throws IOException, TimeoutException {
+		Set<Entry<String, ConnectionFactory>> entrySet = this.connectioFactoryNodes.getVirtualHostNodeConnectionsFactories(vHost); 
+		VirtualHostConnections vhConnectionsTemp = new VirtualHostConnections(vHost);
+		vhConnectionsTemp.createConnections(entrySet);
+		this.virtualHostConnectionsMap.put(vHost, vhConnectionsTemp);
+	}
+	public void closePool(String vHost) {
+		if(this.virtualHostConnectionsMap.containsKey(vHost)) {
+			this.virtualHostConnectionsMap.get(vHost).closeConnections();
+		};
+	}
+	
+	
+	private class VirtualHostConnections{
+		private String virtualHost;
+		private Map<String, Connection> virtualHostConnections = new TreeMap<>();
 		
-			ConnectionFactory connectionFactory = entry.getValue();
-			String node = entry.getKey();
-			this.connections.put(node, connectionFactory.newConnection());
+		VirtualHostConnections(String virtualHost){
+			this.virtualHost = virtualHost;
 		}
-	}
-	public void closePool() {
-		connections.forEach((host,connection)->{
+		public void closeConnections(){
 			try {
-				connection.close();
-			} catch (IOException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+				for(Entry<String, Connection>entry: virtualHostConnections.entrySet()) {
+					entry.getValue().close();
+				}
+				
+			}catch(IOException e) {
+				throw new OrderException(e);
 			}
-		});
-	}
-	public void closeConnectionNode(String node) throws IOException {
-		connections.get(node).close();
+		}
+		void createConnections(Set<Entry<String, ConnectionFactory>> entrySetConnectionsFactories) throws IOException, TimeoutException {
+			for(Entry<String, ConnectionFactory>entry: entrySetConnectionsFactories) {
+				this.virtualHostConnections.put(entry.getKey(), entry.getValue().newConnection());
+			}
+		}
+		Map<String, Connection> getVirtualHostConnections(){
+			return this.virtualHostConnections;
+		}
+		public String getVirtualHost() {
+			return virtualHost;
+		}
+		
 	}
 }

@@ -25,19 +25,21 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.util.Assert;
 import org.springframework.util.StringUtils;
 
+import com.philips.rabbitmqproducertest.services.exceptions.OrderException;
+import com.rabbitmq.client.Address;
 import com.rabbitmq.client.ConnectionFactory;
 @Configuration
 public class ConnectioFactoryNodes implements InitializingBean{
 
-	private Map<String,ConnectionFactory> connectionsFactories = new TreeMap<String, ConnectionFactory>();
+	private Map<String,VhostConnectiosFactories> connectionsFactories = new TreeMap<>();
 	
 
 	
 	@Value("${philips.rabbitmq.hosts}")
-	private String[] rabbitMQHosts;
+	private String rabbitMQHosts;
 	
 	@Value("${philips.rabbitmq.virtual-host}")
-	private String virtualHost;
+	private String[] virtualHost;
 	
 	@Value("${philips.rabbitmq.username}")
 	private String rabbitMQUsername;
@@ -75,58 +77,71 @@ public class ConnectioFactoryNodes implements InitializingBean{
 			Assert.notNull(this.virtualHost,message("philips.rabbitmq.virtual-host"));
 			Assert.notNull(this.rabbitMQUsername,message("philips.rabbitmq.username"));
 			Assert.notNull(this.rabbitMQPassword,message("philips.rabbitmq.password"));
-			
-			for (String rabbitMQHost : rabbitMQHosts) {
-				String[] hostAndPort = rabbitMQHost.split(":");
-				String host = hostAndPort[0];
-				int port = StringUtils.hasText(hostAndPort[1])?5672:Integer.parseInt(hostAndPort[1]);
-				ConnectionFactory connectionFactory =createConnectionFactory(host,port); 
-				this.connectionsFactories.put(host, connectionFactory);
+			Address[] rabbitMQNodes = Address.parseAddresses(rabbitMQHosts);
+			for (String vhost : this.virtualHost) {
+				VhostConnectiosFactories vhostConnectiosFactoriesTemp = new VhostConnectiosFactories(vhost);
+				vhostConnectiosFactoriesTemp.creatConnectionsFactories(rabbitMQNodes);
+				this.connectionsFactories.put(vhost, vhostConnectiosFactoriesTemp);
 			}
 		}
 	}
-	private ConnectionFactory createConnectionFactory(String host, int port) throws FileNotFoundException, GeneralSecurityException, IOException {
-		ConnectionFactory connectionFactoryTemp = new ConnectionFactory();
-		connectionFactoryTemp.setHost(host);
-		connectionFactoryTemp.setPort(port);
-		connectionFactoryTemp.setUsername(this.rabbitMQUsername);;
-		connectionFactoryTemp.setPassword(this.rabbitMQPassword);
-		connectionFactoryTemp.setVirtualHost(this.virtualHost);
-		connectionFactoryTemp.setAutomaticRecoveryEnabled(true);
-		connectionFactoryTemp.setConnectionTimeout(this.connectionTimeout);
-		connectionFactoryTemp.setHandshakeTimeout(this.connectionTimeout);
-		if(StringUtils.hasText(this.sslAlgorithm)) {
-			SSLContext sslContext = getSSLContext(host);
-			connectionFactoryTemp.useSslProtocol(sslContext);
-			connectionFactoryTemp.setSocketFactory(sslContext.getSocketFactory());
-		}
-		return connectionFactoryTemp;
-		
-	}
-	private SSLContext getSSLContext(String host) throws GeneralSecurityException, FileNotFoundException, IOException {
-        KeyStore tks = KeyStore.getInstance(this.trustStoreType);
-        tks.load(new FileInputStream(this.trustStoreLocation), this.trustStorePassword.toCharArray());
-        TrustManagerFactory tmf = TrustManagerFactory.getInstance(this.sslAlgorithm);
-        tmf.init(tks);
-        SecureRandom secureRandom = SecureRandom.getInstance(this.sslAlgorithm);
- 
-        KeyManagerFactory kmf = KeyManagerFactory.getInstance(this.sslAlgorithm);
-        
-        SSLContext sslContext = SSLContext.getInstance(this.sslAlgorithm);
-        sslContext.init(kmf.getKeyManagers(), tmf.getTrustManagers(), secureRandom);
-        
-        List<SNIServerName> sniHostNames = new ArrayList<SNIServerName>();
-        sniHostNames.add(new SNIHostName(host));
-        sslContext.getDefaultSSLParameters().setServerNames(sniHostNames);
-        return sslContext;
-	}
+
 	private String message(String property) {
 		return "The property ["+property+"] cannot be null";
 	}
 	
 
-	public Set<Entry<String,ConnectionFactory>> getNodeConnectionsFactories(){
-		return this.connectionsFactories.entrySet();
+	public Set<Entry<String,ConnectionFactory>> getVirtualHostNodeConnectionsFactories(String vHost){
+		if(this.connectionsFactories.containsKey(vHost)) {
+			return this.connectionsFactories.get(vHost).getConnectionsFactories();
+		}
+		throw new OrderException("There is no restaurant ["+vHost+"]");
+		
+	}
+	
+	private class VhostConnectiosFactories{
+		String virtualHostName;
+		private Map<String,ConnectionFactory> connectionsFactories = new TreeMap<String, ConnectionFactory>();
+		
+		VhostConnectiosFactories(String virtualHostName){
+			this.virtualHostName=virtualHostName;
+		}
+		void creatConnectionsFactories(Address[] adresses) throws FileNotFoundException, GeneralSecurityException, IOException{
+			for(Address adsTemp : adresses) {
+				ConnectionFactory connectionFactoryTemp = new ConnectionFactory();
+				connectionFactoryTemp.setHost(adsTemp.getHost());
+				connectionFactoryTemp.setPort(adsTemp.getPort());
+				connectionFactoryTemp.setUsername(rabbitMQUsername);;
+				connectionFactoryTemp.setPassword(rabbitMQPassword);
+				connectionFactoryTemp.setVirtualHost(virtualHostName);
+				connectionFactoryTemp.setAutomaticRecoveryEnabled(true);
+				connectionFactoryTemp.setConnectionTimeout(connectionTimeout);
+				connectionFactoryTemp.setHandshakeTimeout(connectionTimeout);
+				if(StringUtils.hasText(sslAlgorithm)) {
+					SSLContext sslContext = getSSLContext(adsTemp.getHost());
+					connectionFactoryTemp.useSslProtocol(sslContext);
+					connectionFactoryTemp.setSocketFactory(sslContext.getSocketFactory());
+				}	
+				connectionsFactories.put(adsTemp.getHost(), connectionFactoryTemp);
+			}
+		}
+		private SSLContext getSSLContext(String host) throws GeneralSecurityException, FileNotFoundException, IOException {
+	        KeyStore tks = KeyStore.getInstance(trustStoreType);
+	        tks.load(new FileInputStream(trustStoreLocation), trustStorePassword.toCharArray());
+	        TrustManagerFactory tmf = TrustManagerFactory.getInstance(sslAlgorithm);
+	        tmf.init(tks);
+	        SecureRandom secureRandom = SecureRandom.getInstance(sslAlgorithm);
+	        KeyManagerFactory kmf = KeyManagerFactory.getInstance(sslAlgorithm);
+	        SSLContext sslContext = SSLContext.getInstance(sslAlgorithm);
+	        sslContext.init(kmf.getKeyManagers(), tmf.getTrustManagers(), secureRandom);
+	        List<SNIServerName> sniHostNames = new ArrayList<SNIServerName>();
+	        sniHostNames.add(new SNIHostName(host));
+	        sslContext.getDefaultSSLParameters().setServerNames(sniHostNames);
+	        return sslContext;
+		}
+		Set<Entry<String,ConnectionFactory>>getConnectionsFactories(){
+			return this.connectionsFactories.entrySet();
+		}
 		
 	}
 }
