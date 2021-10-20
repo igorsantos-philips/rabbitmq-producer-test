@@ -1,0 +1,9 @@
+server:
+  port: 8181
+philips:
+  rabbitmq:
+    hosts: localhost:5672
+    virtual-host: chinainbox
+    username: chinainbox
+    password: chinainbox
+debug: true
