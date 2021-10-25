@@ -16,7 +16,7 @@ RUN mkdir /work
 
 COPY --from=build  /work/target/*.jar  /work/app.jar 
 
-EXPOSE 8181
+EXPOSE 8080
 
 EXPOSE 8000
 

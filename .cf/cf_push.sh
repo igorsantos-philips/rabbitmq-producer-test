@@ -1,0 +1,1 @@
+cf push -f rabbitmq-producer-test.yml --vars-file ./vars.yml

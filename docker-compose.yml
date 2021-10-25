@@ -9,6 +9,6 @@ services:
         RABBITMQ_PASSWORD: chinainbox   
     image: rabbitmq-producer-test:latest
     ports:
-      - 8585:8181
+      - 8585:8080
       - 8000:8000
 

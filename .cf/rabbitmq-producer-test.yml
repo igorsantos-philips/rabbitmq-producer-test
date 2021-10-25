@@ -1,0 +1,19 @@
+applications:
+- name: ((app_container_name))
+  disk_quota: 1G
+  docker:
+    image: ((images_repo))/((app_image_name))
+    username: ((repo_user))
+  instances: 1
+  memory: 1G
+  port: 8080:8181
+  health-check-type: port
+  health-check-http-endpoint: null
+  health-check-invocation-timeout: 180
+  env:
+    RABBITMQ_HOSTS: ((rabbit_hosts))
+    VIRTUAL_HOSTS: ((rabbit_vhosts))
+    RABBITMQ_USERNAME: ((rabbit_username))
+    RABBITMQ_PASSWORD: ((rabbit_paasword))
+  routes:
+    - route: ((app_container_name)).((external_domain))
