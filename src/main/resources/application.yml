@@ -2,8 +2,8 @@ server:
   port: 8181
 philips:
   rabbitmq:
-    hosts: localhost:5672
-    virtual-host: chinainbox,kfc,mcdonalds,lecado
-    username: chinainbox
-    password: chinainbox
+#    hosts: localhost:5672
+#    virtual-host: chinainbox,kfc,mcdonalds,lecado
+#    username: chinainbox
+#    password: chinainbox
 debug: true

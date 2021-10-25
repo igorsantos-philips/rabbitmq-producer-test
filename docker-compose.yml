@@ -1,0 +1,14 @@
+version: "3.7"
+services:
+  rabbitmq-producer-test:
+#    network_mode: host
+    environment:
+        RABBITMQ_HOSTS: localhost:5672
+        VIRTUAL_HOSTS: chinainbox, kfc, mcdonalds, lecado
+        RABBITMQ_USERNAME: chinainbox
+        RABBITMQ_PASSWORD: chinainbox   
+    image: rabbitmq-producer-test:latest
+    ports:
+      - 8585:8181
+      - 8000:8000
+

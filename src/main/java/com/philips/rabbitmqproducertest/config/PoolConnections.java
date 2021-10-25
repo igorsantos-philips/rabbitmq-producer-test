@@ -7,6 +7,8 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.concurrent.TimeoutException;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -18,13 +20,16 @@ import com.rabbitmq.client.ConnectionFactory;
 public class PoolConnections {
 	@Autowired
 	private ConnectioFactoryNodes connectioFactoryNodes;
-	
+	private Logger logger = LoggerFactory.getLogger(PoolConnections.class);
 	private Map<String, VirtualHostConnections> virtualHostConnectionsMap = new TreeMap<>();
 	
 	public Connection getConnection(String vHost) throws IOException, TimeoutException {
+		logger.debug("getting connectio to ["+vHost+"]");
 		if(!virtualHostConnectionsMap.containsKey(vHost)) {
+			logger.debug("Connection doens't exist");
 			createConnections(vHost);
 		}
+		logger.debug("Connection exist");
 		Set<Entry<String, Connection>> setConnections = virtualHostConnectionsMap.get(vHost).getVirtualHostConnections().entrySet();
 		for(Entry<String, Connection> entry: setConnections) {
 			Connection connection = entry.getValue();
@@ -66,6 +71,7 @@ public class PoolConnections {
 		}
 		void createConnections(Set<Entry<String, ConnectionFactory>> entrySetConnectionsFactories) throws IOException, TimeoutException {
 			for(Entry<String, ConnectionFactory>entry: entrySetConnectionsFactories) {
+				logger.debug("creating connection ["+ entry.getKey()+"]");
 				this.virtualHostConnections.put(entry.getKey(), entry.getValue().newConnection());
 			}
 		}
