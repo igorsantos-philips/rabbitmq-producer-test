@@ -18,7 +18,7 @@ COPY --from=build  /work/target/*.jar  /work/app.jar
 
 EXPOSE 8080
 
-EXPOSE 8000
+# EXPOSE 8000
 
 ENV RABBITMQ_HOSTS=localhost:5672
 
@@ -28,6 +28,6 @@ ENV RABBITMQ_USERNAME=guest
 
 ENV RABBITMQ_PASSWORD=guest
 
-ENTRYPOINT ["java","-Xdebug","-Xrunjdwp:server=y,transport=dt_socket,address=8000,suspend=n","-Dphilips.rabbitmq.hosts=${RABBITMQ_HOSTS}","-Dphilips.rabbitmq.virtual-host=${VIRTUAL_HOSTS}", "-Dphilips.rabbitmq.username=${RABBITMQ_USERNAME}", "-Dphilips.rabbitmq.password=${RABBITMQ_PASSWORD}","-jar", "/work/app.jar"]
-
+# ENTRYPOINT ["java","-Xdebug","-Xrunjdwp:server=y,transport=dt_socket,address=8000,suspend=n","-Dphilips.rabbitmq.hosts=${RABBITMQ_HOSTS}","-Dphilips.rabbitmq.virtual-host=${VIRTUAL_HOSTS}", "-Dphilips.rabbitmq.username=${RABBITMQ_USERNAME}", "-Dphilips.rabbitmq.password=${RABBITMQ_PASSWORD}","-jar", "/work/app.jar"]
+ENTRYPOINT ["java","-Dphilips.rabbitmq.hosts=${RABBITMQ_HOSTS}","-Dphilips.rabbitmq.virtual-host=${VIRTUAL_HOSTS}", "-Dphilips.rabbitmq.username=${RABBITMQ_USERNAME}", "-Dphilips.rabbitmq.password=${RABBITMQ_PASSWORD}","-jar", "/work/app.jar"]
 
