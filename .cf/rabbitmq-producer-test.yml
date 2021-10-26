@@ -17,3 +17,5 @@ applications:
     RABBITMQ_PASSWORD: ((rabbit_paasword))
   routes:
     - route: ((app_container_name)).((external_domain))
+  services:
+    - ((instance_rabbitmq))

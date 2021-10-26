@@ -13,8 +13,11 @@ external_domain: sa1.hsdp.io
 app_container_name: rabbitmq-producer-test
 app_image_name: rabbitmq-producer-test
 
+# RabbitMQ
+instance_rabbitmq: tasy-rabbitmq
 # environment
 rabbit_hosts: 172.22.60.85:5672
 rabbit_vhosts: VH-A01, VH-A02, VH-A03, VH-A04, VH-A05
 rabbit_username: AieDm7X9MY4Q8PIVzftU
 rabbit_paasword: HsIaz7C1BplxPnQ42NDG
+
